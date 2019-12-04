@@ -17,6 +17,9 @@ class AuthMiddleware(object):
         # if logged in via browser cookies or API key, all pages accessible
         if 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
             return self.app(environ,start_response)
+        elif '/api/' in environ['PATH_INFO']:
+            # we putting only UI behind login so API paths should remain accessible
+            return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
             if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
