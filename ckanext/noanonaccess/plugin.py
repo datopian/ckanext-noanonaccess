@@ -34,7 +34,11 @@ class AuthMiddleware(object):
                 else:
                     url += environ['SERVER_NAME']
                 url += '/user/login'
-                headers = [('Location', url),('Content-Length','0')]
+                headers = [
+                    ('Location', url),
+                    ('Content-Length','0'),
+                    ('X-Robots-Tag', 'noindex, nofollow, noarchive')
+                    ]
                 status = '307 Temporary Redirect'
                 start_response(status, headers)
                 return ['']
