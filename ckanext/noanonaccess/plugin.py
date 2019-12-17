@@ -1,9 +1,7 @@
 import logging
 
-from pylons import config
-from pylons.controllers.util import redirect_to
-
 import ckan.plugins as plugins
+from ckan.plugins.toolkit import config
 import ckan.lib.base as base
 
 
@@ -28,7 +26,18 @@ class AuthMiddleware(object):
                                 or environ['PATH_INFO'] == '/user/register'):
                 return self.app(environ,start_response)
             else:
-                return redirect_to('/user/login')
+                url = environ.get('HTTP_X_FORWARDED_PROTO') \
+                    or environ.get('wsgi.url_scheme', 'http')
+                url += '://'
+                if environ.get('HTTP_HOST'):
+                    url += environ['HTTP_HOST']
+                else:
+                    url += environ['SERVER_NAME']
+                url += '/user/login'
+                headers = [('Location', url),('Content-Length','0')]
+                status = '307 Temporary Redirect'
+                start_response(status, headers)
+                return ['']
 
     def _get_user_for_apikey(self, environ):
         # Adapted from https://github.com/ckan/ckan/blob/625b51cdb0f1697add59c7e3faf723a48c8e04fd/ckan/lib/base.py#L396
