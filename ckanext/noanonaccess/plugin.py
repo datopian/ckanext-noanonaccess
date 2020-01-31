@@ -18,6 +18,9 @@ class AuthMiddleware(object):
         elif '/api/' in environ['PATH_INFO']:
             # we putting only UI behind login so API paths should remain accessible
             return self.app(environ,start_response)
+        elif '/uploads/' in environ['PATH_INFO'] or '/download/' in environ['PATH_INFO']:
+            # allow access to dataset download and uploaded files
+            return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
             if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
