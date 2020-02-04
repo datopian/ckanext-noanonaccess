@@ -13,14 +13,14 @@ class AuthMiddleware(object):
     def __init__(self, app, app_conf):
         self.app = app
     def __call__(self, environ, start_response):
-        # if logged in via browser cookies or API key, all pages accessible
-        if 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
-            return self.app(environ,start_response)
-        elif '/api/' in environ['PATH_INFO']:
-            # we putting only UI behind login so API paths should remain accessible
+        # we putting only UI behind login so API paths should remain accessible
+        # also, allow access to dataset download and uploaded files
+        if '/api/' in environ['PATH_INFO']:
             return self.app(environ,start_response)
         elif '/uploads/' in environ['PATH_INFO'] or '/download/' in environ['PATH_INFO']:
-            # allow access to dataset download and uploaded files
+            return self.app(environ,start_response)
+        elif 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
+            # if logged in via browser cookies or API key, all pages accessible
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
