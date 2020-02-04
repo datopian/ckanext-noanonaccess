@@ -1,5 +1,6 @@
 import logging
 
+import ckan.model as model
 import ckan.plugins as plugins
 from ckan.plugins.toolkit import config
 import ckan.lib.base as base
