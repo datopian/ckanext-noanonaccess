@@ -19,7 +19,7 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         elif '/uploads/' in environ['PATH_INFO'] or '/download/' in environ['PATH_INFO']:
             return self.app(environ,start_response)
-        elif '.rdf' in environ['PATH_INFO']:
+        elif (environ['PATH_INFO']).endswith('.rdf'):
             return self.app(environ,start_response)
         elif 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
             # if logged in via browser cookies or API key, all pages accessible
