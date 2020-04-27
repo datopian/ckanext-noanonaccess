@@ -13,6 +13,16 @@ class AuthMiddleware(object):
     def __init__(self, app, app_conf):
         self.app = app
     def __call__(self, environ, start_response):
+        # Get the dcat_access variable from the config object
+        dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
+        # List of extensions to be made accessible if dcat_access is True
+        ext = ['.jsonld','.xml','.ttl','.n3']
+        # List of catalog endpoints                                      
+        catalog_endpoint = config.get('ckanext.dcat.catalog_endpoint')
+        catalog_endpoints = ['/catalog']                                 
+        if catalog_endpoint:                  
+            catalog_endpoint = catalog_endpoint.split('/{_format}')      
+            catalog_endpoints.append(catalog_endpoint[0])
         # we putting only UI behind login so API paths should remain accessible
         # also, allow access to dataset download and uploaded files
         if '/api/' in environ['PATH_INFO'] or '/datastore/dump/' in environ['PATH_INFO']:
@@ -23,6 +33,11 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         elif 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
             # if logged in via browser cookies or API key, all pages accessible
+            return self.app(environ,start_response)
+        elif dcat_access and (environ['PATH_INFO'].endswith(tuple(ext))
+                          or environ['PATH_INFO'].startswith(tuple(catalog_endpoints))):
+            # If dcat_acess is enabled in the .env file make dataset and 
+            # catalog pages accessible
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
