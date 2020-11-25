@@ -23,6 +23,8 @@ class AuthMiddleware(object):
         if catalog_endpoint:                  
             catalog_endpoint = catalog_endpoint.split('/{_format}')      
             catalog_endpoints.append(catalog_endpoint[0])
+        # Get feeds_access variable from the config object
+        feeds_access = config.get('ckanext.noanonaccess.allow_feeds')
         # we putting only UI behind login so API paths should remain accessible
         # also, allow access to dataset download and uploaded files
         if '/api/' in environ['PATH_INFO'] or '/datastore/dump/' in environ['PATH_INFO']:
@@ -38,6 +40,11 @@ class AuthMiddleware(object):
                           or environ['PATH_INFO'].startswith(tuple(catalog_endpoints))):
             # If dcat_acess is enabled in the .env file make dataset and 
             # catalog pages accessible
+            return self.app(environ,start_response)
+        elif feeds_access and ('/feeds/' in environ['PATH_INFO'] 
+                           or environ['PATH_INFO'].endswith('.atom'))
+            # If feeds_acess is enabled in the .env file
+            # make RSS feeds page accessible
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
