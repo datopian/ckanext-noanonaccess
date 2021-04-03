@@ -50,7 +50,10 @@ class AuthMiddleware(object):
             if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
                                 or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
                                 or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
-                                or environ['PATH_INFO'] == '/user/register'):
+                                or environ['PATH_INFO'] == '/user/register' 
+                                # other SSO login
+                                or environ['PATH_INFO'] == '/oauth2/callback' 
+                                or environ['PATH_INFO'] == '/login/sso'):
                 return self.app(environ,start_response)
             else:
                 url = environ.get('HTTP_X_FORWARDED_PROTO') \
