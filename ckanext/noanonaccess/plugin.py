@@ -5,7 +5,7 @@ import ckan.plugins as plugins
 from ckan.plugins.toolkit import config
 import ckan.lib.base as base
 import re 
-import urllib import unquote
+from urllib import unquote
 logger = logging.getLogger(__name__)
 
 
