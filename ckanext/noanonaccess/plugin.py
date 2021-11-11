@@ -5,7 +5,7 @@ import ckan.plugins as plugins
 from ckan.plugins.toolkit import config
 import ckan.lib.base as base
 import re 
-from urllib.parse import unquote
+import urllib
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +15,7 @@ class AuthMiddleware(object):
     def __call__(self, environ, start_response):
         # sanitize query string to prevent xss attack. 
         QUERY_SENTIZER = re.compile(r'<[^>]+>')
-        environ['QUERY_STRING'] =  QUERY_SENTIZER.sub('', unquote(environ['QUERY_STRING']))
+        environ['QUERY_STRING'] =  QUERY_SENTIZER.sub('', urllib.unquote(environ['QUERY_STRING']))
 
         # Get the dcat_access variable from the config object
         dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
