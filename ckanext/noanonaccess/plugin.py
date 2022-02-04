@@ -55,22 +55,28 @@ class AuthMiddleware(object):
                                 or environ['PATH_INFO'] == '/login/sso'):
                 return self.app(environ,start_response)
             else:
-                url = environ.get('HTTP_X_FORWARDED_PROTO') \
-                    or environ.get('wsgi.url_scheme', 'http')
-                url += '://'
-                if environ.get('HTTP_HOST'):
-                    url += environ['HTTP_HOST']
+                env_path = environ["PATH_INFO"]
+                if "base" in env_path or "static" in env_path or "css" in env_path:
+                    return self.app(environ, start_response)
                 else:
-                    url += environ['SERVER_NAME']
-                url += '/user/login'
-                headers = [
+                    url = environ.get('HTTP_X_FORWARDED_PROTO') \
+                        or environ.get('wsgi.url_scheme', 'http')
+                    url += '://'
+                    if environ.get('HTTP_HOST'):
+                        url += environ['HTTP_HOST']
+                    else:
+                        url += environ['SERVER_NAME']
+                    url += environ.get('SCRIPT_NAME', '')
+                    url += '/user/login'
+                    headers = [
                     ('Location', url),
                     ('Content-Length','0'),
                     ('X-Robots-Tag', 'noindex, nofollow, noarchive')
                     ]
-                status = '307 Temporary Redirect'
-                start_response(status, headers)
-                return ['']
+                    status = '307 Temporary Redirect'
+                    start_response(status, headers)
+
+                    return [b'']
 
     def _get_user_for_apikey(self, environ):
         # Adapted from https://github.com/ckan/ckan/blob/625b51cdb0f1697add59c7e3faf723a48c8e04fd/ckan/lib/base.py#L396
