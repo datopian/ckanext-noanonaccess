@@ -16,6 +16,10 @@ class AuthMiddleware(object):
         dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
         # List of extensions to be made accessible if dcat_access is True
         ext = ['.jsonld','.xml','.ttl','.n3']
+
+        # List of extensions to be made accessible to allow ckanext-security render its templates for 2FA
+        html_ext = ['.html', '.css', '.js']
+
         # List of catalog endpoints                                      
         catalog_endpoint = config.get('ckanext.dcat.catalog_endpoint')
         catalog_endpoints = ['/catalog']                                 
@@ -43,6 +47,9 @@ class AuthMiddleware(object):
         elif feeds_access and environ['PATH_INFO'].startswith('/feeds/'):
             # If feeds_acess is enabled in the .env file
             # make RSS feeds page accessible
+            return self.app(environ,start_response)
+        elif environ['PATH_INFO'].endswith(tuple(html_ext)):
+            # for ckanext-security extension for 2FA
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
