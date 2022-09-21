@@ -44,6 +44,8 @@ class AuthMiddleware(object):
             # If dcat_acess is enabled in the .env file make dataset and 
             # catalog pages accessible
             return self.app(environ,start_response)
+        elif environ['PATH_INFO'].startswith('/datastore/odata'):
+            return self.app(environ,start_response)
         elif feeds_access and environ['PATH_INFO'].startswith('/feeds/'):
             # If feeds_acess is enabled in the .env file
             # make RSS feeds page accessible
