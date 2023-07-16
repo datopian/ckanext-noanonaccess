@@ -1,5 +1,6 @@
 import logging
 
+import re
 import ckan.model as model
 import ckan.plugins as plugins
 from ckan.plugins.toolkit import config
@@ -15,7 +16,7 @@ class AuthMiddleware(object):
         # Get the dcat_access variable from the config object
         dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
         # List of extensions to be made accessible if dcat_access is True
-        ext = ['.jsonld','.xml','.ttl','.n3']
+        ext = ['.jsonld','.xml','.ttl','.n3', '.rdf']
         # List of catalog endpoints                                      
         catalog_endpoint = config.get('ckanext.dcat.catalog_endpoint')
         catalog_endpoints = ['/catalog']                                 
@@ -26,37 +27,33 @@ class AuthMiddleware(object):
         feeds_access = config.get('ckanext.noanonaccess.allow_feeds')
         # we putting only UI behind login so API paths should remain accessible
         # also, allow access to dataset download and uploaded files
-        if '/api/' in environ['PATH_INFO'] or '/datastore/dump/' in environ['PATH_INFO']:
-            return self.app(environ,start_response)
-        elif '/uploads/' in environ['PATH_INFO'] or '/download/' in environ['PATH_INFO']:
-            return self.app(environ,start_response)
-        elif (environ['PATH_INFO']).endswith('.rdf'):
-            return self.app(environ,start_response)
-        elif 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
+        path_info = environ['PATH_INFO']
+        if 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
             # if logged in via browser cookies or API key, all pages accessible
-            return self.app(environ,start_response)
-        elif dcat_access and (environ['PATH_INFO'].endswith(tuple(ext))
-                          or environ['PATH_INFO'].startswith(tuple(catalog_endpoints))):
+            return self.app(environ, start_response)
+        elif dcat_access and (path_info.endswith(tuple(ext)) or path_info.startswith(tuple(catalog_endpoints))):
             # If dcat_acess is enabled in the .env file make dataset and 
             # catalog pages accessible
-            return self.app(environ,start_response)
-        elif feeds_access and environ['PATH_INFO'].startswith('/feeds/'):
+            return self.app(environ, start_response)
+        elif feeds_access and path_info.startswith('/feeds/'):
             # If feeds_acess is enabled in the .env file
             # make RSS feeds page accessible
-            return self.app(environ,start_response)
+            return self.app(environ, start_response)
         else:
-            # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
-                                or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
-                                or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
-                                or environ['PATH_INFO'] == '/user/register' 
-                                # other SSO login
-                                or environ['PATH_INFO'] == '/oauth2/callback' 
-                                or environ['PATH_INFO'] == '/login/sso'):
-                return self.app(environ,start_response)
+            # List of paths that are allowed to be accessed without login
+            allowed_paths = ['/user/login', '/user/_logout', '/user/reset', '/user/logged_out', '/user/logged_in', 
+                             '/user/logged_out_redirect', '/user/register', '/oauth2/callback', '/login/sso']
+            
+            allowed_regexes_path = [r'/webassets/*', r'/base/*', r'/_debug_toolbar/*', r'/api/*',  
+                                r'/datastore/dump/*', r'/uploads/*', r'/download/*']
+            
+            
+            if any(path_info == path for path in allowed_paths) or \
+                any(re.match(r_path, path_info) for r_path in allowed_regexes_path):
+                return self.app(environ, start_response)
             else:
-                url = environ.get('HTTP_X_FORWARDED_PROTO') \
-                    or environ.get('wsgi.url_scheme', 'http')
+                # If not logged in, redirect to login page
+                url = environ.get('HTTP_X_FORWARDED_PROTO', environ.get('wsgi.url_scheme', 'http'))
                 url += '://'
                 if environ.get('HTTP_HOST'):
                     url += environ['HTTP_HOST']
@@ -70,7 +67,7 @@ class AuthMiddleware(object):
                     ]
                 status = '307 Temporary Redirect'
                 start_response(status, headers)
-                return ['']
+                return [''.encode("utf-8")]
 
     def _get_user_for_apikey(self, environ):
         # Adapted from https://github.com/ckan/ckan/blob/625b51cdb0f1697add59c7e3faf723a48c8e04fd/ckan/lib/base.py#L396
