@@ -42,7 +42,7 @@ class AuthMiddleware(object):
         else:
             # List of paths that are allowed to be accessed without login
             allowed_paths = ['/user/login', '/user/_logout', '/user/reset', '/user/logged_out', '/user/logged_in', 
-                             '/user/logged_out_redirect', '/user/register', '/oauth2/callback', '/login/sso']
+                             '/user/logged_out_redirect', '/user/register', '/oauth2/callback', '/login/sso', '/util/redirect']
             
             allowed_regexes_path = [r'/webassets/*', r'/base/*', r'/_debug_toolbar/*', r'/api/*',  
                                 r'/datastore/dump/*', r'/uploads/*', r'/download/*']
