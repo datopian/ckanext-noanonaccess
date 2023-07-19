@@ -1,98 +1,85 @@
 import logging
 
 import re
-import ckan.model as model
+from flask import current_app
+
 import ckan.plugins as plugins
+from ckan.plugins import toolkit as tk 
 from ckan.plugins.toolkit import config
-import ckan.lib.base as base
-logger = logging.getLogger(__name__)
 
-
-class AuthMiddleware(object):
-    def __init__(self, app, app_conf):
-        self.app = app
-    def __call__(self, environ, start_response):
-
-        # Get the dcat_access variable from the config object
-        dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
-        # List of extensions to be made accessible if dcat_access is True
-        ext = ['.jsonld','.xml','.ttl','.n3', '.rdf']
-        # List of catalog endpoints                                      
-        catalog_endpoint = config.get('ckanext.dcat.catalog_endpoint')
-        catalog_endpoints = ['/catalog']                                 
-        if catalog_endpoint:                  
-            catalog_endpoint = catalog_endpoint.split('/{_format}')      
-            catalog_endpoints.append(catalog_endpoint[0])
-        # Get feeds_access variable from the config object
-        feeds_access = config.get('ckanext.noanonaccess.allow_feeds')
-        # we putting only UI behind login so API paths should remain accessible
-        # also, allow access to dataset download and uploaded files
-        path_info = environ['PATH_INFO']
-        if 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
-            # if logged in via browser cookies or API key, all pages accessible
-            return self.app(environ, start_response)
-        elif dcat_access and (path_info.endswith(tuple(ext)) or path_info.startswith(tuple(catalog_endpoints))):
-            # If dcat_acess is enabled in the .env file make dataset and 
-            # catalog pages accessible
-            return self.app(environ, start_response)
-        elif feeds_access and path_info.startswith('/feeds/'):
-            # If feeds_acess is enabled in the .env file
-            # make RSS feeds page accessible
-            return self.app(environ, start_response)
-        else:
-            # List of paths that are allowed to be accessed without login
-            allowed_paths = ['/user/login', '/user/_logout', '/user/reset', '/user/logged_out', '/user/logged_in', 
-                             '/user/logged_out_redirect', '/user/register', '/oauth2/callback', '/login/sso', '/util/redirect']
-            
-            allowed_regexes_path = [r'/webassets/*', r'/base/*', r'/_debug_toolbar/*', r'/api/*',  
-                                r'/datastore/dump/*', r'/uploads/*', r'/download/*']
-            
-            
-            if any(path_info == path for path in allowed_paths) or \
-                any(re.match(r_path, path_info) for r_path in allowed_regexes_path):
-                return self.app(environ, start_response)
-            else:
-                # If not logged in, redirect to login page
-                url = environ.get('HTTP_X_FORWARDED_PROTO', environ.get('wsgi.url_scheme', 'http'))
-                url += '://'
-                if environ.get('HTTP_HOST'):
-                    url += environ['HTTP_HOST']
-                else:
-                    url += environ['SERVER_NAME']
-                url += '/user/login'
-                headers = [
-                    ('Location', url),
-                    ('Content-Length','0'),
-                    ('X-Robots-Tag', 'noindex, nofollow, noarchive')
-                    ]
-                status = '307 Temporary Redirect'
-                start_response(status, headers)
-                return [''.encode("utf-8")]
-
-    def _get_user_for_apikey(self, environ):
-        # Adapted from https://github.com/ckan/ckan/blob/625b51cdb0f1697add59c7e3faf723a48c8e04fd/ckan/lib/base.py#L396
-        apikey_header_name = config.get(base.APIKEY_HEADER_NAME_KEY,
-                                        base.APIKEY_HEADER_NAME_DEFAULT)
-        apikey = environ.get(apikey_header_name, '')
-        if not apikey:
-            # For misunderstanding old documentation (now fixed).
-            apikey = environ.get('HTTP_AUTHORIZATION', '')
-        if not apikey:
-            apikey = environ.get('Authorization', '')
-            # Forget HTTP Auth credentials (they have spaces).
-            if ' ' in apikey:
-                apikey = ''
-        if not apikey:
-            return None
-        apikey = unicode(apikey)
-        # check if API key is valid by comparing against keys of registered users
-        query = model.Session.query(model.User)
-        user = query.filter_by(apikey=apikey).first()
-        return user
-
+log = logging.getLogger(__name__)
 
 class NoanonaccessPlugin(plugins.SingletonPlugin):
-    plugins.implements(plugins.IMiddleware, inherit=True)
+    plugins.implements(plugins.IAuthenticator, inherit=True)
 
-    def make_middleware(self, app, config):
-        return AuthMiddleware(app, config)
+    # IAuthenticator
+    def identify(self, ):
+        try:
+            is_anonoumous_user = tk.current_user.is_anonymous 
+        except:
+            # for before ckan v2.10.x
+            from ckan.views import _identify_user_default
+            _identify_user_default()
+            if getattr(tk.c, 'user', False):
+                is_anonoumous_user = False
+            else:
+                is_anonoumous_user = True
+                
+        current_path = tk.request.path
+
+        def _get_blueprint_and_view_function():
+            if current_path is not None:
+                path = tk.request.path
+                route = current_app.url_map.bind('').match(path)
+                endpoint = route[0]
+                if '.' not in endpoint:
+                    return endpoint
+                blueprint_name, view_function_name = endpoint.split('.', 1)
+                return '%s.%s' % (blueprint_name, view_function_name)
+            else:
+                return ''
+                        
+        current_blueprint = _get_blueprint_and_view_function()
+
+        # check if the blueprint route is in the allowed list
+        allowed_blueprint = [
+            'static', # static files
+            'user.login', # login page
+            'user.register', # register page
+            'user.logout', # logout page
+            'user.logged_out_page', # logged out page redirect
+            'user.request_reset', # request reset page
+            'user.perform_reset', # perform reset page
+            'util.internal_redirect', # internal redirect
+            'api.i18n_js_translations', # i18n js translations
+            'webassets.index', # webassets files eg. js, css files urls
+            'api.action', # api calls
+            '_debug_toolbar.static', # debug toolbar static files
+            'resource.download', # resource download url
+            'dataset_resource.download', # dataset resource download url
+        ]    
+       
+        # allow 'dcat' endpoints
+        if 'dcat' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('dcat.read_catalog') # dcat metadata urls 
+
+        # allow 'datastore' endpoints
+        if 'datastore' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('datastore.dump') # datastore dump
+
+        # allow if current blueprint is in allowed blueprint route 
+        restricted_access = not(current_blueprint in allowed_blueprint)
+        
+
+        # allowed regex path list 
+        allowed_paths = config.get('ckanext.noanonaccess.allowed_paths', [])
+        if allowed_paths:
+            allowed_paths = allowed_paths.split(' ')
+       
+        for path in allowed_paths:
+            if re.match(path, current_path):
+                restricted_access = False
+                break
+
+        if is_anonoumous_user and restricted_access:
+            return tk.redirect_to('user.login', came_from=current_path)

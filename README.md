@@ -56,6 +56,12 @@ To install ckanext-noanonaccess:
 
      sudo service apache2 reload
 
+--------------------
+Configuration Options
+--------------------
+You can also specify allowed page URLs using regex format, separated by spaces.
+
+    ckanext.noanonaccess.allowed_paths = /about/.* /oauth2/callback
 
 ------------------------
 Development Installation
