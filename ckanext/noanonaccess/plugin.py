@@ -67,6 +67,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         if 'datastore' in config.get('ckan.plugins', ''):
             allowed_blueprint.append('datastore.dump') # datastore dump
 
+        # allow 's3filestore' endpoints
+        if 's3filestore' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('s3_resource.resource_download')
+
         # allow if current blueprint is in allowed blueprint route 
         restricted_access = not(current_blueprint in allowed_blueprint)
         
