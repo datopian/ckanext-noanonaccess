@@ -57,6 +57,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             '_debug_toolbar.static', # debug toolbar static files
             'resource.download', # resource download url
             'dataset_resource.download', # dataset resource download url
+            's3_uploads.uploaded_file_redirect', # s3 uploads redirect
         ]    
        
         # allow 'dcat' endpoints
