@@ -72,6 +72,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         if 's3filestore' in config.get('ckan.plugins', ''):
             allowed_blueprint.append('s3_resource.resource_download')
 
+        # allow 'googleanalytics' endpoints
+        if 'googleanalytics' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('google_analytics.action')
+
         # allow if current blueprint is in allowed blueprint route 
         restricted_access = not(current_blueprint in allowed_blueprint)
         
