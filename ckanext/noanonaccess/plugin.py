@@ -63,6 +63,8 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         # allow 'dcat' endpoints
         if 'dcat' in config.get('ckan.plugins', ''):
             allowed_blueprint.append('dcat.read_catalog') # dcat metadata urls 
+            allowed_blueprint.append('dcat.read_dataset')
+            allowed_blueprint.append('dcat_json_interface.dcat_json')
 
         # allow 'datastore' endpoints
         if 'datastore' in config.get('ckan.plugins', ''):
