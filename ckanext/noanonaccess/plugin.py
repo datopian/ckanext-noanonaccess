@@ -80,10 +80,17 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         if "googleanalytics" in config.get("ckan.plugins", ""):
             allowed_blueprint.append("google_analytics.action")
 
+        # allowed blueprint specified the environment variable
+        allowed_blueprints_in_env = config.get(
+            "ckanext.noanonaccess.allowed_blueprint", []
+        )
+        if allowed_blueprints_in_env:
+            allowed_blueprint.extend(allowed_blueprints_in_env.split(" "))
+
         # allow if current blueprint is in allowed blueprint route
         restricted_access = not (current_blueprint in allowed_blueprint)
 
-        # allowed regex path list
+        # allowed regex path list specified in the environment variable
         allowed_paths = config.get("ckanext.noanonaccess.allowed_paths", [])
         if allowed_paths:
             allowed_paths = allowed_paths.split(" ")
