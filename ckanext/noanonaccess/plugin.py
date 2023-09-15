@@ -1,114 +1,96 @@
 import logging
 
-import ckan.model as model
+import re
+from flask import current_app
+
 import ckan.plugins as plugins
+from ckan.plugins import toolkit as tk 
 from ckan.plugins.toolkit import config
-import ckan.lib.base as base
-logger = logging.getLogger(__name__)
 
-
-class AuthMiddleware(object):
-    def __init__(self, app, app_conf):
-        self.app = app
-    def __call__(self, environ, start_response):
-
-        # Get the dcat_access variable from the config object
-        dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
-        # List of extensions to be made accessible if dcat_access is True
-        ext = ['.jsonld','.xml','.ttl','.n3']
-
-        # List of extensions to be made accessible to allow ckanext-security render its templates for 2FA
-        html_ext = ['.html', '.css', '.js']
-
-        # List of catalog endpoints                                      
-        catalog_endpoint = config.get('ckanext.dcat.catalog_endpoint')
-        catalog_endpoints = ['/catalog']                                 
-        if catalog_endpoint:                  
-            catalog_endpoint = catalog_endpoint.split('/{_format}')      
-            catalog_endpoints.append(catalog_endpoint[0])
-        # Get feeds_access variable from the config object
-        feeds_access = config.get('ckanext.noanonaccess.allow_feeds')
-        # we putting only UI behind login so API paths should remain accessible
-        # also, allow access to dataset download and uploaded files
-        if '/api/' in environ['PATH_INFO'] or '/datastore/dump/' in environ['PATH_INFO']:
-            return self.app(environ,start_response)
-        elif '/uploads/' in environ['PATH_INFO'] or '/download/' in environ['PATH_INFO']:
-            return self.app(environ,start_response)
-        elif (environ['PATH_INFO']).endswith('.rdf'):
-            return self.app(environ,start_response)
-        elif 'repoze.who.identity' in environ or self._get_user_for_apikey(environ):
-            # if logged in via browser cookies or API key, all pages accessible
-            return self.app(environ,start_response)
-        elif dcat_access and (environ['PATH_INFO'].endswith(tuple(ext))
-                          or environ['PATH_INFO'].startswith(tuple(catalog_endpoints))):
-            # If dcat_acess is enabled in the .env file make dataset and 
-            # catalog pages accessible
-            return self.app(environ,start_response)
-        elif feeds_access and environ['PATH_INFO'].startswith('/feeds/'):
-            # If feeds_acess is enabled in the .env file
-            # make RSS feeds page accessible
-            return self.app(environ,start_response)
-        elif environ['PATH_INFO'].endswith(tuple(html_ext)):
-            # for ckanext-security extension for 2FA
-            return self.app(environ,start_response)
-        else:
-            # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
-                                or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
-                                or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
-                                or environ['PATH_INFO'] == '/user/register' 
-                                # other SSO login
-                                or environ['PATH_INFO'] == '/oauth2/callback' 
-                                or environ['PATH_INFO'] == '/login/sso'):
-                return self.app(environ,start_response)
-            else:
-                env_path = environ["PATH_INFO"]
-                if "base" in env_path or "static" in env_path or "css" in env_path:
-                    return self.app(environ, start_response)
-                else:
-                    url = environ.get('HTTP_X_FORWARDED_PROTO') \
-                        or environ.get('wsgi.url_scheme', 'http')
-                    url += '://'
-                    if environ.get('HTTP_HOST'):
-                        url += environ['HTTP_HOST']
-                    else:
-                        url += environ['SERVER_NAME']
-                    url += environ.get('SCRIPT_NAME', '')
-                    url += '/user/login'
-                    headers = [
-                    ('Location', url),
-                    ('Content-Length','0'),
-                    ('X-Robots-Tag', 'noindex, nofollow, noarchive')
-                    ]
-                    status = '307 Temporary Redirect'
-                    start_response(status, headers)
-
-                    return [b'']
-
-    def _get_user_for_apikey(self, environ):
-        # Adapted from https://github.com/ckan/ckan/blob/625b51cdb0f1697add59c7e3faf723a48c8e04fd/ckan/lib/base.py#L396
-        apikey_header_name = config.get(base.APIKEY_HEADER_NAME_KEY,
-                                        base.APIKEY_HEADER_NAME_DEFAULT)
-        apikey = environ.get(apikey_header_name, '')
-        if not apikey:
-            # For misunderstanding old documentation (now fixed).
-            apikey = environ.get('HTTP_AUTHORIZATION', '')
-        if not apikey:
-            apikey = environ.get('Authorization', '')
-            # Forget HTTP Auth credentials (they have spaces).
-            if ' ' in apikey:
-                apikey = ''
-        if not apikey:
-            return None
-        apikey = unicode(apikey)
-        # check if API key is valid by comparing against keys of registered users
-        query = model.Session.query(model.User)
-        user = query.filter_by(apikey=apikey).first()
-        return user
-
+log = logging.getLogger(__name__)
 
 class NoanonaccessPlugin(plugins.SingletonPlugin):
-    plugins.implements(plugins.IMiddleware, inherit=True)
+    plugins.implements(plugins.IAuthenticator, inherit=True)
 
-    def make_middleware(self, app, config):
-        return AuthMiddleware(app, config)
+    # IAuthenticator
+    def identify(self, ):
+        try:
+            is_anonoumous_user = tk.current_user.is_anonymous 
+        except:
+            # for before ckan v2.10.x
+            from ckan.views import _identify_user_default
+            _identify_user_default()
+            if getattr(tk.c, 'user', False):
+                is_anonoumous_user = False
+            else:
+                is_anonoumous_user = True
+                
+        current_path = tk.request.path
+
+        def _get_blueprint_and_view_function():
+            if current_path is not None:
+                path = tk.request.path
+                route = current_app.url_map.bind('').match(path)
+                endpoint = route[0]
+                if '.' not in endpoint:
+                    return endpoint
+                blueprint_name, view_function_name = endpoint.split('.', 1)
+                return '%s.%s' % (blueprint_name, view_function_name)
+            else:
+                return ''
+                        
+        current_blueprint = _get_blueprint_and_view_function()
+
+        # check if the blueprint route is in the allowed list
+        allowed_blueprint = [
+            'static', # static files
+            'user.login', # login page
+            'user.register', # register page
+            'user.logout', # logout page
+            'user.logged_out_page', # logged out page redirect
+            'user.request_reset', # request reset page
+            'user.perform_reset', # perform reset page
+            'util.internal_redirect', # internal redirect
+            'api.i18n_js_translations', # i18n js translations
+            'webassets.index', # webassets files eg. js, css files urls
+            'api.action', # api calls
+            '_debug_toolbar.static', # debug toolbar static files
+            'resource.download', # resource download url
+            'dataset_resource.download', # dataset resource download url
+            's3_uploads.uploaded_file_redirect', # s3 uploads redirect
+        ]    
+       
+        # allow 'dcat' endpoints
+        if 'dcat' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('dcat.read_catalog') # dcat metadata urls 
+            allowed_blueprint.append('dcat.read_dataset')
+            allowed_blueprint.append('dcat_json_interface.dcat_json')
+
+        # allow 'datastore' endpoints
+        if 'datastore' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('datastore.dump') # datastore dump
+
+        # allow 's3filestore' endpoints
+        if 's3filestore' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('s3_resource.resource_download')
+
+        # allow 'googleanalytics' endpoints
+        if 'googleanalytics' in config.get('ckan.plugins', ''):
+            allowed_blueprint.append('google_analytics.action')
+
+        # allow if current blueprint is in allowed blueprint route 
+        restricted_access = not(current_blueprint in allowed_blueprint)
+        
+
+        # allowed regex path list 
+        allowed_paths = config.get('ckanext.noanonaccess.allowed_paths', [])
+        if allowed_paths:
+            allowed_paths = allowed_paths.split(' ')
+       
+        for path in allowed_paths:
+            if re.match(path, current_path):
+                restricted_access = False
+                break
+
+        if is_anonoumous_user and restricted_access:
+            return tk.redirect_to('user.login', came_from=current_path)
