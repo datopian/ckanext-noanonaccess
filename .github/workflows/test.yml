@@ -19,7 +19,7 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        ckan-version: ["2.10", 2.9, 2.9-py2, 2.8]
+        ckan-version: ["2.10", 2.9, 2.9-py2]
       fail-fast: false
 
     name: CKAN ${{ matrix.ckan-version }}
@@ -50,8 +50,15 @@ jobs:
       - name: Install requirements
         run: |
           pip install -r requirements.txt
+          pip install -r dev-requirements.txt
           pip install -e .
+      - name: Setup extension
+          # Extra initialization steps
+        run: |
           # Replace default path to CKAN core config file with the one on the container
           sed -i -e 's/use = config:.*/use = config:\/srv\/app\/src\/ckan\/test-core.ini/' test.ini
+          # DB initilize
+          ckan -c test.ini db init
+
       - name: Run tests
-        run: pytest --ckan-ini=test.ini
+        run: pytest --ckan-ini=test.ini --cov=ckanext.noanonaccess --disable-warnings ckanext/noanonaccess/tests
