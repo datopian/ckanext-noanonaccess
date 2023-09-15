@@ -52,6 +52,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r dev-requirements.txt
           pip install -e .
+          pip install pytest-ckan
       - name: Setup extension
           # Extra initialization steps
         run: |
