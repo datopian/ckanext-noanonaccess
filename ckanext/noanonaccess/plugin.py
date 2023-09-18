@@ -30,18 +30,32 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         current_path = tk.request.path
 
         def _get_blueprint_and_view_function():
-            if current_path is not None:
-                path = tk.request.path
-                route = current_app.url_map.bind("").match(path)
-                endpoint = route[0]
-                if "." not in endpoint:
-                    return endpoint
-                blueprint_name, view_function_name = endpoint.split(".", 1)
-                return "%s.%s" % (blueprint_name, view_function_name)
+            if hasattr(tk.request, "blueprint"):
+                if current_path is not None:
+                    route = current_app.url_map.bind("").match(current_path)
+                    endpoint = route[0]
+                    if "." not in endpoint:
+                        return endpoint
+                    blueprint_name, view_function_name = endpoint.split(".", 1)
+                    return "%s.%s" % (blueprint_name, view_function_name)
+                else:
+                    return ""
             else:
-                return ""
+                # Backwards compatibility for CKAN < 2.9.x (Pylons routes)
+                pylons_mapper = config.get("routes.map", "")
+                match = pylons_mapper.routematch(current_path)
+                if match:
+                    # Extract the controller and action from the matched route
+                    controller = match[0]["controller"]
+                    action = match[0]["action"]
+                    name = match[1].name or controller
+                    return "%s.%s" % (name, action)
+                else:
+                    return ""
 
         current_blueprint = _get_blueprint_and_view_function()
+
+        print(current_blueprint)
 
         # check if the blueprint route is in the allowed list
         allowed_blueprint = [
@@ -60,6 +74,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             "resource.download",  # resource download url
             "dataset_resource.download",  # dataset resource download url
             "s3_uploads.uploaded_file_redirect",  # s3 uploads redirect
+            "package.resource_download",  # Pylons resource download url
         ]
 
         # allow 'dcat' endpoints
@@ -68,17 +83,32 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             allowed_blueprint.append("dcat.read_dataset")
             allowed_blueprint.append("dcat_json_interface.dcat_json")
 
+            # Pylons dcat metadata urls
+            allowed_blueprint.append("dcat_dataset.read_catalog")
+            allowed_blueprint.append("dcat_dataset.read_dataset")
+            allowed_blueprint.append("dcat_dataset.dcat_json")
+
         # allow 'datastore' endpoints
         if "datastore" in config.get("ckan.plugins", ""):
-            allowed_blueprint.append("datastore.dump")  # datastore dump
+            allowed_blueprint.append("datastore.dump")
+            # Pylons datastore dump url
+            allowed_blueprint.append(
+                "ckanext.datastore.controller:DatastoreController.dump"
+            )
 
         # allow 's3filestore' endpoints
         if "s3filestore" in config.get("ckan.plugins", ""):
             allowed_blueprint.append("s3_resource.resource_download")
+            # Pylons s3filestore resource download url
+            allowed_blueprint.append("resource_download.resource_download")
 
         # allow 'googleanalytics' endpoints
         if "googleanalytics" in config.get("ckan.plugins", ""):
             allowed_blueprint.append("google_analytics.action")
+            # Pylons googleanalytics action
+            allowed_blueprint.append(
+                "ckanext.googleanalytics.controller:GAApiController.action"
+            )
 
         # allowed blueprint specified the environment variable
         allowed_blueprints_in_env = config.get(
