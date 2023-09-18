@@ -55,8 +55,6 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
 
         current_blueprint = _get_blueprint_and_view_function()
 
-        print(current_blueprint)
-
         # check if the blueprint route is in the allowed list
         allowed_blueprint = [
             "static",  # static files
@@ -74,40 +72,67 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             "resource.download",  # resource download url
             "dataset_resource.download",  # dataset resource download url
             "s3_uploads.uploaded_file_redirect",  # s3 uploads redirect
+            "util.redirect",  # Pylons redirect
             "package.resource_download",  # Pylons resource download url
         ]
 
         # allow 'dcat' endpoints
         if "dcat" in config.get("ckan.plugins", ""):
-            allowed_blueprint.append("dcat.read_catalog")  # dcat metadata urls
-            allowed_blueprint.append("dcat.read_dataset")
-            allowed_blueprint.append("dcat_json_interface.dcat_json")
-
-            # Pylons dcat metadata urls
-            allowed_blueprint.append("dcat_dataset.read_catalog")
-            allowed_blueprint.append("dcat_dataset.read_dataset")
-            allowed_blueprint.append("dcat_dataset.dcat_json")
+            allowed_blueprint.extend(
+                [
+                    "dcat.rdf_dataset",
+                    "dcat.rdf_catalog",
+                    "dcat_json_interface.dcat_json",
+                    # pylons url
+                    "dcat_dataset.read_catalog"
+                    "dcat_dataset.read_dataset"
+                    "ckanext.dcat.controllers:DCATController.dcat_json",
+                ]
+            )
 
         # allow 'datastore' endpoints
         if "datastore" in config.get("ckan.plugins", ""):
-            allowed_blueprint.append("datastore.dump")
-            # Pylons datastore dump url
-            allowed_blueprint.append(
-                "ckanext.datastore.controller:DatastoreController.dump"
+            allowed_blueprint.extend(
+                [
+                    "datastore.dump",
+                    # pylons url
+                    "ckanext.datastore.controller:DatastoreController.dump",
+                ]
             )
 
         # allow 's3filestore' endpoints
         if "s3filestore" in config.get("ckan.plugins", ""):
-            allowed_blueprint.append("s3_resource.resource_download")
-            # Pylons s3filestore resource download url
-            allowed_blueprint.append("resource_download.resource_download")
+            allowed_blueprint.extend(
+                [
+                    "s3_resource.resource_download",
+                    # pylons url
+                    "resource_download.resource_download",
+                ]
+            )
 
         # allow 'googleanalytics' endpoints
         if "googleanalytics" in config.get("ckan.plugins", ""):
-            allowed_blueprint.append("google_analytics.action")
-            # Pylons googleanalytics action
-            allowed_blueprint.append(
-                "ckanext.googleanalytics.controller:GAApiController.action"
+            allowed_blueprint.extend(
+                [
+                    "google_analytics.action",
+                    # Pylons url
+                    "ckanext.googleanalytics.controller:GAApiController.action",
+                ]
+            )
+
+        # allow 'security' endpoints
+        if "security" in config.get("ckan.plugins", ""):
+            allowed_blueprint.extend(
+                [
+                    "mfa_user.login",
+                    "mfa_user.configure_mfa",
+                    "mfa_user.new",
+                    # Pylons url
+                    "ckanext.security.controllers:SecureUserController.request_reset",
+                    "ckanext.security.controllers:MFAUserController.login",
+                    "ckanext.security.controllers:MFAUserController.configure_mfa",
+                    "ckanext.security.controllers:MFAUserController.new",
+                ]
             )
 
         # allowed blueprint specified the environment variable

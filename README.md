@@ -1,4 +1,4 @@
-[![Tests](https://github.com/datopian/ckanext-noanonaccess/actions/workflows/test.yml/badge.svg)](https://github.com/datopian/ckanext-noanonaccess/actions/workflows/test.yml) [![CKAN](https://img.shields.io/badge/ckan-2.10.x-blue.svg)]() [![CKAN](https://img.shields.io/badge/ckan-2.9.x-blue.svg)]()
+[![Tests](https://github.com/datopian/ckanext-noanonaccess/actions/workflows/test.yml/badge.svg)](https://github.com/datopian/ckanext-noanonaccess/actions/workflows/test.yml) [![CKAN](https://img.shields.io/badge/ckan-2.10.x-blue.svg)]() [![CKAN](https://img.shields.io/badge/ckan-2.9.x-blue.svg)]() [![CKAN](https://img.shields.io/badge/ckan-2.8.x-blue.svg)]()
 
 ckanext-noanonaccess
 =============
