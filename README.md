@@ -3,7 +3,7 @@
 ckanext-noanonaccess
 =============
 
-Disable anonymous access to the CKAN classic frontend. This extension redirects anonymous users to the login page and only allow if they are logged in. It's useful if you're using CKAN as a internal data management system or if you're using decoupled frontend for the end users.
+Disable anonymous access to the CKAN classic frontend. This extension redirects anonymous users to the login page and only allow if they are logged in. It's useful if you're using CKAN as an internal data management system or have  a decoupled frontend for the end users.
 
 
 
@@ -33,7 +33,7 @@ To install ckanext-noanonaccess:
 --------------------
 Configuration Options
 --------------------
-You can also specify allowed page URLs using buleprint name or regex format, separated by spaces.
+You can also specify allowed page URLs in blueprints by using either the blueprint's name or path URL in regex format, separated by spaces.
 
     ckanext.noanonaccess.allowed_blueprint = feeds.general feeds.group
     ckanext.noanonaccess.allowed_paths = /about/.* /oauth2/callback
