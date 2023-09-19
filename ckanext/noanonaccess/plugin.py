@@ -129,6 +129,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
                     "mfa_user.new",
                     # Pylons url
                     "ckanext.security.controllers:SecureUserController.request_reset",
+                    "ckanext.security.controllers:SecureUserController.perform_reset",
                     "ckanext.security.controllers:MFAUserController.login",
                     "ckanext.security.controllers:MFAUserController.configure_mfa",
                     "ckanext.security.controllers:MFAUserController.new",
