@@ -71,7 +71,6 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             "_debug_toolbar.static",  # debug toolbar static files
             "resource.download",  # resource download url
             "dataset_resource.download",  # dataset resource download url
-            "s3_uploads.uploaded_file_redirect",  # s3 uploads redirect
             "util.redirect",  # Pylons redirect
             "package.resource_download",  # Pylons resource download url
         ]
@@ -105,8 +104,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             allowed_blueprint.extend(
                 [
                     "s3_resource.resource_download",
+                    "s3_uploads.uploaded_file_redirect",
                     # pylons url
                     "resource_download.resource_download",
+                    "uploaded_file.uploaded_file_redirect",
                 ]
             )
 
