@@ -79,6 +79,8 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         if "dcat" in config.get("ckan.plugins", ""):
             allowed_blueprint.extend(
                 [
+                    "dcat.read_dataset",
+                    "dcat.read_catalog",
                     "dcat.rdf_dataset",
                     "dcat.rdf_catalog",
                     "dcat_json_interface.dcat_json",
