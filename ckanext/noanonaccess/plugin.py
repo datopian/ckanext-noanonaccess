@@ -27,6 +27,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             else:
                 is_anonoumous_user = True
 
+        # if not anonymous user then no need to check
+        if not is_anonoumous_user:
+            return
+        
         current_path = tk.request.path
 
         def _get_blueprint_and_view_function():
