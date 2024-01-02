@@ -77,6 +77,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             "dataset_resource.download",  # dataset resource download url
             "util.redirect",  # Pylons redirect
             "package.resource_download",  # Pylons resource download url
+            "error.document"
         ]
 
         # allow 'dcat' endpoints
