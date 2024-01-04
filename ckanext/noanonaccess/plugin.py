@@ -30,7 +30,6 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         # if not anonymous user then no need to check
         if not is_anonoumous_user:
             return
-        
         current_path = tk.request.path
 
         def _get_blueprint_and_view_function():
@@ -77,7 +76,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             "dataset_resource.download",  # dataset resource download url
             "util.redirect",  # Pylons redirect
             "package.resource_download",  # Pylons resource download url
-            "error.document"
+            "error.document",
         ]
 
         # allow 'dcat' endpoints
