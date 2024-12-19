@@ -63,6 +63,17 @@ class AuthMiddleware(object):
                                 or environ['PATH_INFO'] == '/oauth2/callback' 
                                 or environ['PATH_INFO'] == '/login/sso'):
                 return self.app(environ,start_response)
+            if environ['PATH_INFO'].startswith('/user/login'):
+                # Force redirect to /ckan/user/login
+                url = environ.get('HTTP_X_FORWARDED_PROTO', 'http') + '://'
+                url += environ.get('HTTP_HOST', environ['SERVER_NAME']) + '/ckan/user/login'
+                headers = [
+                    ('Location', url),
+                    ('Content-Length', '0'),
+                    ('X-Robots-Tag', 'noindex, nofollow, noarchive')
+                ]
+                start_response('307 Temporary Redirect', headers)
+                return [b'']
             else:
                 env_path = environ["PATH_INFO"]
                 if "base" in env_path or "static" in env_path or "css" in env_path:
