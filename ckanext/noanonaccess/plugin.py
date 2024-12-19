@@ -55,7 +55,7 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
+            if (environ['PATH_INFO'] == '/ckan/user/login' or environ['PATH_INFO'] == '/user/_logout'
                                 or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
                                 or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
                                 or environ['PATH_INFO'] == '/user/register' 
