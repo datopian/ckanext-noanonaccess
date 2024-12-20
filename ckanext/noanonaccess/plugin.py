@@ -6,17 +6,15 @@ from ckan.plugins.toolkit import config
 import ckan.lib.base as base
 logger = logging.getLogger(__name__)
 
-
 class AuthMiddleware(object):
     def __init__(self, app, app_conf):
         self.app = app
     def __call__(self, environ, start_response):
-
+        logger.info('AuthMiddleware: %s %s', environ['PATH_INFO'], start_response)
         # Get the dcat_access variable from the config object
         dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
         # List of extensions to be made accessible if dcat_access is True
         ext = ['.jsonld','.xml','.ttl','.n3']
-
         # List of extensions to be made accessible to allow ckanext-security render its templates for 2FA
         html_ext = ['.html', '.css', '.js']
 
@@ -55,7 +53,7 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
+            if (environ['PATH_INFO'] == '/ckan/user/login' or environ['PATH_INFO'] == '/user/_logout'
                                 or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
                                 or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
                                 or environ['PATH_INFO'] == '/user/register' 
@@ -66,8 +64,6 @@ class AuthMiddleware(object):
             else:
                 env_path = environ["PATH_INFO"]
                 if "base" in env_path or "static" in env_path or "css" in env_path:
-                    return self.app(environ, start_response)
-                elif env_path == '/ckan/user/login':  # Prevent redirect loop
                     return self.app(environ, start_response)
                 else:
                     url = environ.get('HTTP_X_FORWARDED_PROTO') \
