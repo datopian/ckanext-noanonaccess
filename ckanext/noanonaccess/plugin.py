@@ -6,15 +6,17 @@ from ckan.plugins.toolkit import config
 import ckan.lib.base as base
 logger = logging.getLogger(__name__)
 
+
 class AuthMiddleware(object):
     def __init__(self, app, app_conf):
         self.app = app
     def __call__(self, environ, start_response):
-        logger.info('AuthMiddleware: %s %s', environ['PATH_INFO'], start_response)
+
         # Get the dcat_access variable from the config object
         dcat_access = config.get('ckanext.noanonaccess.allow_dcat')
         # List of extensions to be made accessible if dcat_access is True
         ext = ['.jsonld','.xml','.ttl','.n3']
+
         # List of extensions to be made accessible to allow ckanext-security render its templates for 2FA
         html_ext = ['.html', '.css', '.js']
 
@@ -53,13 +55,13 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/ckan/user/login' or environ['PATH_INFO'] == '/ckan/user/_logout'
-                                or '/ckan/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/ckan/user/logged_out'
-                                or environ['PATH_INFO'] == '/ckan/user/logged_in' or environ['PATH_INFO'] == '/ckanuser/logged_out_redirect'
-                                or environ['PATH_INFO'] == '/ckan/user/register' 
+            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
+                                or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
+                                or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
+                                or environ['PATH_INFO'] == '/user/register' 
                                 # other SSO login
-                                or environ['PATH_INFO'] == '/ckan/oauth2/callback' 
-                                or environ['PATH_INFO'] == '/ckan/login/sso'):
+                                or environ['PATH_INFO'] == '/oauth2/callback' 
+                                or environ['PATH_INFO'] == '/login/sso'):
                 return self.app(environ,start_response)
             else:
                 env_path = environ["PATH_INFO"]
@@ -74,7 +76,7 @@ class AuthMiddleware(object):
                     else:
                         url += environ['SERVER_NAME']
                     url += environ.get('SCRIPT_NAME', '')
-                    url += '/ckan/user/login'
+                    url += '/user/login'
                     headers = [
                     ('Location', url),
                     ('Content-Length','0'),
