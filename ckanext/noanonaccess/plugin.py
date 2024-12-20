@@ -55,7 +55,7 @@ class AuthMiddleware(object):
             return self.app(environ,start_response)
         else:
             # otherwise only login/reset are accessible
-            if (environ['PATH_INFO'] == '/ckan/user/login' or environ['PATH_INFO'] == '/user/_logout'
+            if (environ['PATH_INFO'] == '/user/login' or environ['PATH_INFO'] == '/user/_logout'
                                 or '/user/reset' in environ['PATH_INFO'] or environ['PATH_INFO'] == '/user/logged_out'
                                 or environ['PATH_INFO'] == '/user/logged_in' or environ['PATH_INFO'] == '/user/logged_out_redirect'
                                 or environ['PATH_INFO'] == '/user/register' 
@@ -63,17 +63,6 @@ class AuthMiddleware(object):
                                 or environ['PATH_INFO'] == '/oauth2/callback' 
                                 or environ['PATH_INFO'] == '/login/sso'):
                 return self.app(environ,start_response)
-            if environ['PATH_INFO'].startswith('/user/login'):
-                # Force redirect to /ckan/user/login
-                url = environ.get('HTTP_X_FORWARDED_PROTO', 'http') + '://'
-                url += environ.get('HTTP_HOST', environ['SERVER_NAME']) + '/ckan/user/login'
-                headers = [
-                    ('Location', url),
-                    ('Content-Length', '0'),
-                    ('X-Robots-Tag', 'noindex, nofollow, noarchive')
-                ]
-                start_response('307 Temporary Redirect', headers)
-                return [b'']
             else:
                 env_path = environ["PATH_INFO"]
                 if "base" in env_path or "static" in env_path or "css" in env_path:
