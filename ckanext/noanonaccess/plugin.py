@@ -67,6 +67,8 @@ class AuthMiddleware(object):
                 env_path = environ["PATH_INFO"]
                 if "base" in env_path or "static" in env_path or "css" in env_path:
                     return self.app(environ, start_response)
+                elif env_path == '/ckan/user/login':  # Prevent redirect loop
+                    return self.app(environ, start_response)
                 else:
                     url = environ.get('HTTP_X_FORWARDED_PROTO') \
                         or environ.get('wsgi.url_scheme', 'http')
