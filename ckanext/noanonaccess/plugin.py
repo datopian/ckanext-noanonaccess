@@ -76,7 +76,7 @@ class AuthMiddleware(object):
                     else:
                         url += environ['SERVER_NAME']
                     url += environ.get('SCRIPT_NAME', '')
-                    url += '/user/login'
+                    url += '/ckan/user/login'
                     headers = [
                     ('Location', url),
                     ('Content-Length','0'),
